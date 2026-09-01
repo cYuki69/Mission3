@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.utils import timezone
 from django.contrib import messages
-from django.contrib.admin.views.decorators import staff_member_required
+
 from .forms import MissionCommandForm, MissionSubmissionForm
 from .models import Mission
 
@@ -13,7 +13,7 @@ def success_view(request):
     return render(request, 'uploads/success.html')
 
 
-@staff_member_required(login_url='/admin/login/')
+
 def create_mission(request):
     if request.method == 'POST':
         form = MissionCommandForm(request.POST)
