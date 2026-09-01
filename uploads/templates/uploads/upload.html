@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>รอ Mission</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+        }
+        .upload-card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            padding: 40px;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .dropzone {
+            border: 2px dashed #aab7c4;
+            border-radius: 15px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.5);
+            position: relative;
+        }
+        .dropzone.dragover {
+            border-color: #4CAF50;
+            background: rgba(76, 175, 80, 0.1);
+        }
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+        .preview-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+        .form-control {
+            border-radius: 10px;
+            padding: 12px 20px;
+            border: 1px solid #ced4da;
+            transition: all 0.3s;
+        }
+        .form-control:focus {
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+            border-color: #86b7fe;
+        }
+        .btn-upload {
+            border-radius: 10px;
+            padding: 12px 30px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .btn-upload:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+            color: white;
+        }
+        .error-feedback {
+            color: #dc3545;
+            font-size: 0.875em;
+            margin-top: 0.25rem;
+        }
+        #uploadForm {
+            display: none;
+        }
+        .waiting-icon {
+            width: 76px;
+            height: 76px;
+            display: grid;
+            place-items: center;
+            margin: 0 auto 20px;
+            border-radius: 50%;
+            background: #e9efff;
+            color: #3157c9;
+            font-size: 36px;
+        }
+        .mission-list {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-7">
+            <div class="upload-card my-5">
+                <div class="text-center mb-4">
+                    <div class="waiting-icon" aria-hidden="true">⏳</div>
+                    <h2 class="fw-bold mb-2">รอ Mission</h2>
+                    <p class="text-muted">ยังไม่มี Mission ที่ต้องส่งงาน กรุณารอลิงก์ Mission จากผู้ดูแลระบบ</p>
+                    <a class="btn btn-primary btn-sm" href="{% url 'create_mission' %}">สร้าง / จัดการ Mission</a>
+                    <p class="small text-muted mt-3 mb-0">ปุ่มนี้สำหรับผู้ดูแลระบบ และต้องล็อกอินแอดมินก่อน</p>
+                </div>
+
+                <div class="mission-list border-top pt-4 mt-2">
+                    <h3 class="h5 mb-3">Mission ที่สร้างไว้</h3>
+                    {% if missions %}
+                        <div class="list-group">
+                            {% for mission in missions %}
+                                <a class="list-group-item list-group-item-action" href="{% url 'mission_submit' mission.id %}">
+                                    <div class="d-flex justify-content-between gap-3">
+                                        <strong>{{ mission.title }}</strong>
+                                        <span class="badge text-bg-{% if mission.status == 'CP' %}success{% elif mission.status == 'OD' %}danger{% else %}warning{% endif %}">{{ mission.get_status_display }}</span>
+                                    </div>
+                                    <small class="text-muted">กำหนดส่ง: {{ mission.deadline|date:"d M Y, H:i" }}</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-muted mb-0">ยังไม่มี Mission</p>
+                    {% endif %}
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show rounded-3" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="POST" enctype="multipart/form-data" id="uploadForm">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <div class="error-feedback">{{ form.name.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="error-feedback">{{ form.email.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        {{ form.message }}
+                        {% if form.message.errors %}
+                            <div class="error-feedback">{{ form.message.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        {{ form.image }}
+                        <div class="dropzone" id="dropzone">
+                            <div class="dz-message" id="dz-message">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="#aab7c4" class="bi bi-cloud-arrow-up mb-3" viewBox="0 0 16 16">
+                                  <path fill-rule="evenodd" d="M7.646 5.146a.5.5 0 0 1 .708 0l2 2a.5.5 0 0 1-.708.708L8.5 6.707V10.5a.5.5 0 0 1-1 0V6.707L6.354 7.854a.5.5 0 1 1-.708-.708l2-2z"/>
+                                  <path d="M4.406 3.342A5.53 5.53 0 0 1 8 2c2.69 0 4.923 2 5.166 4.579C14.758 6.804 16 8.137 16 9.773 16 11.569 14.502 13 12.687 13H3.781C1.708 13 0 11.366 0 9.318c0-1.763 1.266-3.223 2.942-3.593.143-.863.698-1.723 1.464-2.383zm.653.757c-.757.653-1.153 1.44-1.153 2.056v.448l-.445.049C2.064 6.805 1 7.952 1 9.318 1 10.785 2.23 12 3.781 12h8.906C13.98 12 15 10.988 15 9.773c0-1.216-1.02-2.228-2.313-2.228h-.5v-.5C12.188 4.825 10.328 3 8 3a4.53 4.53 0 0 0-2.941 1.1z"/>
+                                </svg>
+                                <h5>Drag & Drop your image here</h5>
+                                <p class="text-muted small">or click to browse (Max 10MB, JPG/PNG/WebP)</p>
+                            </div>
+                            <div class="preview-container" id="previewContainer">
+                                <img src="" alt="Preview" class="preview-image" id="imagePreview">
+                                <div class="mt-3">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" id="removeImage">Remove Image</button>
+                                </div>
+                            </div>
+                        </div>
+                        {% if form.image.errors %}
+                            <div class="error-feedback">{{ form.image.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-upload btn-lg" id="submitBtn">
+                            <span class="spinner-border spinner-border-sm d-none me-2" role="status" aria-hidden="true" id="submitSpinner"></span>
+                            Submit Image
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('imageInput');
+        const dzMessage = document.getElementById('dz-message');
+        const previewContainer = document.getElementById('previewContainer');
+        const imagePreview = document.getElementById('imagePreview');
+        const removeBtn = document.getElementById('removeImage');
+        const uploadForm = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const submitSpinner = document.getElementById('submitSpinner');
+
+        // Clicking the dropzone triggers the file input
+        dropzone.addEventListener('click', (e) => {
+            if (e.target !== removeBtn) {
+                fileInput.click();
+            }
+        });
+
+        // Drag events
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, () => {
+                dropzone.classList.remove('dragover');
+            }, false);
+        });
+
+        // Handle drop
+        dropzone.addEventListener('drop', (e) => {
+            let dt = e.dataTransfer;
+            let files = dt.files;
+            
+            if (files.length) {
+                fileInput.files = files;
+                handleFiles(files[0]);
+            }
+        });
+
+        // Handle file select
+        fileInput.addEventListener('change', function() {
+            if (this.files.length) {
+                handleFiles(this.files[0]);
+            }
+        });
+
+        function handleFiles(file) {
+            // Validate client-side
+            const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!validTypes.includes(file.type)) {
+                alert('Invalid file type. Please upload a JPG, PNG, or WebP image.');
+                resetDropzone();
+                return;
+            }
+
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File is too large. Maximum size is 10MB.');
+                resetDropzone();
+                return;
+            }
+
+            // Show preview
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                dzMessage.style.display = 'none';
+                previewContainer.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        }
+
+        removeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetDropzone();
+        });
+
+        function resetDropzone() {
+            fileInput.value = '';
+            imagePreview.src = '';
+            previewContainer.style.display = 'none';
+            dzMessage.style.display = 'block';
+        }
+
+        uploadForm.addEventListener('submit', function() {
+            // Show spinner if valid file
+            if(fileInput.files.length > 0) {
+                submitBtn.classList.add('disabled');
+                submitSpinner.classList.remove('d-none');
+                submitBtn.childNodes[2].nodeValue = ' Uploading...';
+            }
+        });
+    });
+</script>
+</body>
+</html>

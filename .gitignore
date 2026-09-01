@@ -1,0 +1,15 @@
+# Python and Django
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Local configuration and data
+.env
+db.sqlite3
+media/
+
+# Build and editor files
+staticfiles/
+.vscode/
+.idea/
